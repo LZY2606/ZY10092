@@ -34,3 +34,7 @@ coverage/
 .vite/
 .turbo/
 *.tsbuildinfo
+
+# --- local runtime data ---
+.gsb-data/
+gsb-server

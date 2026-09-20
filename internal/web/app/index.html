@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>离线瓦片测绘拼接台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>离线瓦片测绘拼接台</h1>
+  <div class="hint">统一 XYZ 索引 · 反子午线显式拆分 · 越界隔离不取模 · 内容寻址输出</div>
+</header>
+
+<main>
+<section class="panel" id="packages-panel">
+  <h2>1 · 离线数据来源包</h2>
+  <details open>
+    <summary>生成并导入一个测试包（数据在请求时合成，页面无写死示例）</summary>
+    <div class="grid">
+      <label>名称 <input id="g-name" value=""></label>
+      <label>Zoom <input id="g-zoom" type="number" value="2"></label>
+      <label>方案
+        <select id="g-scheme"><option value="xyz">XYZ（左上原点）</option><option value="tms">TMS（左下原点）</option></select>
+      </label>
+      <label>投影 <input id="g-proj" value="EPSG:3857"></label>
+      <label>许可 <input id="g-license" value="CC-BY-4.0"></label>
+      <label>来源 <input id="g-source" value="team-alpha"></label>
+      <label>西经 <input id="g-west" type="number" step="0.1" value="-120"></label>
+      <label>南纬 <input id="g-south" type="number" step="0.1" value="20"></label>
+      <label>东经 <input id="g-east" type="number" step="0.1" value="-60"></label>
+      <label>北纬 <input id="g-north" type="number" step="0.1" value="60"></label>
+      <label>采集日期 <input id="g-captured" type="datetime-local"></label>
+      <label>X0 <input id="g-x0" type="number" value="0"></label>
+      <label>Y0 <input id="g-y0" type="number" value="1"></label>
+      <label>宽 <input id="g-w" type="number" value="2"></label>
+      <label>高 <input id="g-h" type="number" value="1"></label>
+      <label>越界瓦片数 <input id="g-oor" type="number" value="1"></label>
+      <button id="g-submit">生成并导入</button>
+    </div>
+  </details>
+  <details>
+    <summary>上传离线包 tar（manifest.json + tiles/*）</summary>
+    <form id="upload-form">
+      <input type="file" id="upload-file" accept=".tar">
+      <button>上传导入</button>
+    </form>
+  </details>
+  <table id="packages-table">
+    <thead><tr><th>ID</th><th>名称</th><th>Zoom</th><th>方案</th><th>投影</th><th>瓦片</th><th>许可</th><th>隔离</th><th>导入时间</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  <div id="quarantine-box"></div>
+</section>
+
+<section class="panel">
+  <h2>2 · 区域规则（优先级 / 锁定版本）</h2>
+  <div class="grid">
+    <label>区域名 <input id="r-name" value="main"></label>
+    <label>Zoom <input id="r-zoom" type="number" value="2"></label>
+    <label>西 <input id="r-west" type="number" step="0.1" value="-130"></label>
+    <label>南 <input id="r-south" type="number" step="0.1" value="10"></label>
+    <label>东 <input id="r-east" type="number" step="0.1" value="-40"></label>
+    <label>北 <input id="r-north" type="number" step="0.1" value="70"></label>
+    <label class="wide">来源优先级（包 ID，逗号分隔，越前越高）<input id="r-priority" placeholder="pkg-aaa, pkg-bbb"></label>
+    <label>锁定包 ID（可空）<input id="r-locked" placeholder="留空表示按优先级"></label>
+    <button id="r-save">保存 / 更新规则</button>
+  </div>
+  <div id="region-info"></div>
+</section>
+
+<section class="panel canvas-panel">
+  <h2>3 · 覆盖与接缝画布</h2>
+  <div class="toolbar">
+    <button id="analyze-btn">分析区域</button>
+    <button id="plan-btn">生成候选拼接</button>
+    <label>图层
+      <select id="layer-mode">
+        <option value="sources">覆盖来源</option>
+        <option value="seams">接缝热度</option>
+        <option value="warnings">冲突/倒置</option>
+      </select>
+    </label>
+    <span class="hint">滚轮缩放 · 拖拽平移 · 点击瓦片查看所有候选输入</span>
+  </div>
+  <canvas id="canvas" width="900" height="560"></canvas>
+  <div id="selection"></div>
+  <div id="analysis-summary"></div>
+</section>
+
+<section class="panel">
+  <h2>4 · 构建（四种状态分栏显示）</h2>
+  <button id="create-build">为当前区域创建构建（pending）</button>
+  <div class="build-columns">
+    <div class="build-col pending"><h3>待确认 Pending</h3><ul data-status="pending"></ul></div>
+    <div class="build-col accepted"><h3>已接受 Accepted</h3><ul data-status="accepted"></ul></div>
+    <div class="build-col rejected"><h3>被拒绝 Rejected</h3><ul data-status="rejected"></ul></div>
+    <div class="build-col recovering"><h3>恢复中/写入中 Recovering</h3><ul data-status="recovering"></ul></div>
+  </div>
+  <div id="build-detail"></div>
+</section>
+
+<section class="panel">
+  <h2>5 · 导出 / 重新导入验证</h2>
+  <div class="toolbar">
+    <button id="export-btn">导出已接受构建 (tar)</button>
+    <form id="reimport-form" class="inline">
+      <input type="file" id="reimport-file" accept=".tar">
+      <button>重新导入并比对</button>
+    </form>
+  </div>
+  <div id="reimport-result"></div>
+</section>
+
+<section class="panel">
+  <h2>事件溯源日志（每次状态变化均可追溯）</h2>
+  <button id="refresh-events">刷新</button>
+  <table id="events-table"><thead><tr><th>#</th><th>类型</th><th>时间</th><th>幂等键</th><th>说明</th></tr></thead><tbody></tbody></table>
+</section>
+</main>
+
+<template id="toast-tpl"><div class="toast"></div></template>
+<div id="toasts"></div>
+<script src="app.js"></script>
+</body>
+</html>
