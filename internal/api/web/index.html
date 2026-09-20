@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TileForge 测绘覆盖控制台</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>TileForge</h1>
+    <div id="statusCounts" class="counts"></div>
+  </header>
+  <main>
+    <section class="panel wide">
+      <h2>覆盖画布</h2>
+      <div class="toolbar">
+        <select id="buildSelect"></select>
+        <button id="refreshMap">刷新</button>
+        <button id="recoverBuild">恢复中断写入</button>
+        <a id="exportLink" class="button">导出 ZIP</a>
+      </div>
+      <canvas id="map" width="960" height="480"></canvas>
+      <div id="tileInfo" class="info">点击一个输出瓦片查看候选输入、问题和授权。</div>
+    </section>
+    <section class="panel">
+      <h2>上传离线包</h2>
+      <form id="uploadForm">
+        <input type="file" name="package" accept="application/zip" required>
+        <input name="idem" placeholder="幂等键（可选）">
+        <button>上传登记</button>
+      </form>
+      <div id="packages"></div>
+    </section>
+    <section class="panel">
+      <h2>区域规则</h2>
+      <form id="policyForm">
+        <div class="grid4">
+          <label>西<input name="west" value="-180" step="0.000001"></label>
+          <label>南<input name="south" value="-60" step="0.000001"></label>
+          <label>东<input name="east" value="180" step="0.000001"></label>
+          <label>北<input name="north" value="75" step="0.000001"></label>
+        </div>
+        <input name="priority" placeholder="优先 package id（可选）">
+        <div class="grid2">
+          <input name="lockedPackage" placeholder="锁定 package id（可选）">
+          <input name="lockedVersion" placeholder="锁定版本（可选）">
+        </div>
+        <button>保存规则</button>
+      </form>
+      <div id="policies"></div>
+    </section>
+    <section class="panel">
+      <h2>生成候选拼接</h2>
+      <form id="buildForm">
+        <div class="grid4">
+          <label>西<input name="west" value="-180" step="0.000001"></label>
+          <label>南<input name="south" value="-60" step="0.000001"></label>
+          <label>东<input name="east" value="180" step="0.000001"></label>
+          <label>北<input name="north" value="75" step="0.000001"></label>
+        </div>
+        <label>统一 zoom <input name="zoom" type="number" min="0" max="28" value="2"></label>
+        <label>幂等键 <input name="idem"></label>
+        <button>生成</button>
+      </form>
+      <form id="importForm">
+        <input type="file" name="build" accept="application/zip">
+        <button>导入发布包</button>
+      </form>
+      <div id="builds"></div>
+    </section>
+    <section class="panel wide">
+      <h2>事件日志</h2>
+      <pre id="events"></pre>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
